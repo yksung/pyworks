@@ -4,6 +4,7 @@ Created on 2017. 5. 22.
 @author: Holly
 '''
 # -*- coding : utf-8 -*-
+from sys import argv
 """
 analyze.py 사용 예
 
@@ -35,6 +36,83 @@ es_host = "211.39.140.65"
 es_port = 9200
 
 arr = []
+
+"""
+docid : 어떤 문서
+term : 어떤 문서의 화제어
+"""
+def related_word_extractor(parent_docid, term, debug=False):
+    connection = http.client.HTTPConnection(es_host, es_port)
+    connection.connect()
+    
+    highlight_req = {
+                     "query": {
+                        "bool": {
+                          "must": [
+                            {
+                              "term": {
+                                "_id": parent_docid
+                              }
+                            },
+                            {
+                              "multi_match": {
+                                "query": term,
+                                "type": "phrase",
+                                "fields": ["doc_title", "doc_content"]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "highlight": {
+                        "fields": {
+                          "doc_title": {
+                            "fragment_size": 30,
+                            "number_of_fragments": 5,
+                            "fragmenter": "simple"
+                          },
+                          "doc_content": {
+                            "fragment_size": 30,
+                            "number_of_fragments": 5,
+                            "fragmenter": "simple"
+                          }
+                        }
+                      }
+                     }
+    
+    connection.request("POST", "/dmap_test/crawl_doc/_search", json.dumps(highlight_req), {"Content-Type" : "application/json"})
+    
+    result = json.loads(connection.getresponse().read())
+    
+    related = []
+    for hit in result['hits']['hits']:
+        highlight = hit['highlight']
+        if "doc_title" in highlight:
+            for fragment in highlight['doc_title'] :
+                related += get_close_word(fragment, debug)
+        if "doc_content" in highlight:
+            for fragment in highlight['doc_content'] :
+                related += get_close_word(fragment, debug)
+                
+    if debug: print(related)
+                
+    return list(filter(lambda x:len(x)>1, list(sorted(set(related), key=lambda x:related.index(x)))))
+
+def get_close_word(text, debug=False):
+    if debug : print("### text : {}".format(text))
+    ret = []
+    
+    hl_p = re.compile("<em>[가-힣ㄱ-ㅎa-zA-Z\s]*</em>[가-힣ㄱ-ㅎa-zA-Z]*")
+    not_word_p = re.compile("[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]")
+    
+    for token in filter(lambda x:x, hl_p.split(text)): # 검색된 단어들(em으로 감싸인 단어)을 제외한 나머지 단어 묶음을 추출
+        if debug : print("* "+token)
+        for x in filter( lambda x:x, not_word_p.split(token.strip()) ): # 나머지 단어들을 기호나 스페이스로 분리
+            word = analyze(x.strip(), debug)
+            if word.strip():
+                ret.append(word)
+
+    return ret
 
 def store_kma_result(path, file_to_append=""):
     split_pattern = re.compile("[\s\+]")
@@ -892,7 +970,7 @@ def get_category(query, match=True):
     return category
     
     
-def analyze(text):
+def analyze(text, debug=False):
     connection = http.client.HTTPConnection(es_host, es_port)
     connection.connect()
 
@@ -902,8 +980,23 @@ def analyze(text):
         "Content-Type" : "application/json"
     })
     result = json.loads(connection.getresponse().read())
+    
+    ret=[]
+    for x in result['tokens']:
+        token = x["token"]
+        type = x["type"]
+        # 명사 실질형태소와 외국어만 추출
+        if type not in ["COMPOUND","EOJEOL","INFLECT","VV","VA","VX","VCP","VCN","NNB","E","JKS","JKC","JKG","JKO","JKB","JKV","JKQ","JX","JC","EP","EF","EC","ETN","ETM","XPN","XSN","XSV","XSA","SF","SE","SS","SN","SP","SO","SW","SH"]:
+            if debug : print("{}==>{}/{}".format(text, token, type))
+            if(type in ["VV","VA"]):
+                ret.append(token[:token.find("/V")]+"다")
+            else:
+                ret.append(token)
+        else:
+            if debug : print("XXX {}==>{}/{}".format(text, token, type))
 
-    return result
+    return "".join(ret)
+
     
 def join_jamo(str):
     jamo = split_syllables(str)
@@ -924,6 +1017,9 @@ def get_current_datetime():
 
 
 if __name__ == '__main__':
-    result = analyze('무상보증기간')
+    #result = analyze('무상보증기간')
+    #print(get_close_word("소에 제출한 <em>탄핵</em><em>심판</em> <em>답변서</em>에서 이런 헛점을 치밀히"))
     
-    print(result)
+    #print(related_word_extractor("1d964adaab34500fdf3dcfc7dcc25bdf", "해외 법인장들", debug=True))
+    print(related_word_extractor(argv[1], argv[2], debug=False))
+    #print("테스트 중입니다")
