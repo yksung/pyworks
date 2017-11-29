@@ -1,0 +1,77 @@
+2017-11-29 19:46:58 - [31merror[39m: uncaughtException: Cannot find module 'python-shell' date=Wed Nov 29 2017 19:46:58 GMT+0900 (대한민국 표준시), pid=876, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=33583104, heapTotal=18748496, heapUsed=12547256, loadavg=[0, 0, 0], uptime=1179908.2687684
+Error: Cannot find module 'python-shell'
+    at Function.Module._resolveFilename (module.js:325:15)
+    at Function.Module._load (module.js:276:25)
+    at Module.require (module.js:353:17)
+    at require (internal/module.js:12:17)
+    at Object.<anonymous> (E:\dev\pythonworks\es2scd\index.js:4:19)
+    at Module._compile (module.js:409:26)
+    at Object.Module._extensions..js (module.js:416:10)
+    at Module.load (module.js:343:32)
+    at Function.Module._load (module.js:300:12)
+    at Function.Module.runMain (module.js:441:10)
+2017-11-29 19:48:30 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 19:51:02 - [31merror[39m: uncaughtException: spawn C:ProgramDataAnaconda3python.exe:. ENOENT date=Wed Nov 29 2017 19:51:02 GMT+0900 (대한민국 표준시), pid=18192, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=35938304, heapTotal=19780432, heapUsed=14067792, loadavg=[0, 0, 0], uptime=1180152.3167271
+Error: spawn C:ProgramDataAnaconda3python.exe:. ENOENT
+    at exports._errnoException (util.js:870:11)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:178:32)
+    at onErrorNT (internal/child_process.js:344:16)
+    at nextTickCallbackWith2Args (node.js:442:9)
+    at process._tickCallback (node.js:356:17)
+2017-11-29 19:51:02 - [32minfo[39m: ::1 - - [29/Nov/2017:10:51:02 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 19:52:15 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 19:52:30 - [32minfo[39m: ::1 - - [29/Nov/2017:10:52:30 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 19:52:30 - [31merror[39m: uncaughtException: spawn C:\ProgramData\Anaconda3\python.exe:. ENOENT date=Wed Nov 29 2017 19:52:30 GMT+0900 (대한민국 표준시), pid=13740, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=35758080, heapTotal=19780432, heapUsed=14066408, loadavg=[0, 0, 0], uptime=1180240.30876
+Error: spawn C:\ProgramData\Anaconda3\python.exe:. ENOENT
+    at exports._errnoException (util.js:870:11)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:178:32)
+    at onErrorNT (internal/child_process.js:344:16)
+    at nextTickCallbackWith2Args (node.js:442:9)
+    at process._tickCallback (node.js:356:17)
+2017-11-29 19:54:02 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 19:54:03 - [32minfo[39m: ::1 - - [29/Nov/2017:10:54:03 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 19:54:03 - [31merror[39m: uncaughtException: spawn C:\ProgramData\Anaconda3\python.exe;. ENOENT date=Wed Nov 29 2017 19:54:03 GMT+0900 (대한민국 표준시), pid=1720, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=35545088, heapTotal=19780432, heapUsed=14098456, loadavg=[0, 0, 0], uptime=1180333.4890896
+Error: spawn C:\ProgramData\Anaconda3\python.exe;. ENOENT
+    at exports._errnoException (util.js:870:11)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:178:32)
+    at onErrorNT (internal/child_process.js:344:16)
+    at nextTickCallbackWith2Args (node.js:442:9)
+    at process._tickCallback (node.js:356:17)
+2017-11-29 19:54:45 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 19:54:49 - [32minfo[39m: ::1 - - [29/Nov/2017:10:54:49 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 19:54:49 - [31merror[39m: uncaughtException: callback is not defined date=Wed Nov 29 2017 19:54:49 GMT+0900 (대한민국 표준시), pid=13596, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=37195776, heapTotal=20812368, heapUsed=12031528, loadavg=[0, 0, 0], uptime=1180379.6227283
+ReferenceError: callback is not defined
+    at E:\dev\pythonworks\es2scd\index.js:44:13
+    at null._endCallback (E:\dev\pythonworks\es2scd\node_modules\python-shell\index.js:165:25)
+    at terminateIfNeeded (E:\dev\pythonworks\es2scd\node_modules\python-shell\index.js:116:35)
+    at ChildProcess.<anonymous> (E:\dev\pythonworks\es2scd\node_modules\python-shell\index.js:88:9)
+    at emitTwo (events.js:87:13)
+    at ChildProcess.emit (events.js:172:7)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:200:12)
+2017-11-29 19:58:46 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 19:58:49 - [32minfo[39m: ::1 - - [29/Nov/2017:10:58:49 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 500 1098 "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 19:59:22 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 19:59:26 - [32minfo[39m: ::1 - - [29/Nov/2017:10:59:26 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 19:59:27 - [31merror[39m: uncaughtException: print is not defined date=Wed Nov 29 2017 19:59:26 GMT+0900 (대한민국 표준시), pid=18788, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=37675008, heapTotal=20812368, heapUsed=12053688, loadavg=[0, 0, 0], uptime=1180657.1226004
+ReferenceError: print is not defined
+    at callback (E:\dev\pythonworks\es2scd\index.js:18:3)
+    at E:\dev\pythonworks\es2scd\index.js:47:13
+    at null._endCallback (E:\dev\pythonworks\es2scd\node_modules\python-shell\index.js:165:25)
+    at terminateIfNeeded (E:\dev\pythonworks\es2scd\node_modules\python-shell\index.js:116:35)
+    at ChildProcess.<anonymous> (E:\dev\pythonworks\es2scd\node_modules\python-shell\index.js:88:9)
+    at emitTwo (events.js:87:13)
+    at ChildProcess.emit (events.js:172:7)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:200:12)
+2017-11-29 19:59:46 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 19:59:48 - [32minfo[39m: ::1 - - [29/Nov/2017:10:59:48 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:01:22 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:01:23 - [32minfo[39m: ::1 - - [29/Nov/2017:11:01:23 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:01:23 - [31merror[39m: error

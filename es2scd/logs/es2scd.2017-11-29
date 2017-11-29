@@ -1,0 +1,91 @@
+2017-11-29 20:03:03 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:03:06 - [32minfo[39m: ::1 - - [29/Nov/2017:11:03:06 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:03:06 - [31merror[39m: error
+2017-11-29 20:05:08 - [32minfo[39m: ::1 - - [29/Nov/2017:11:05:08 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:05:09 - [31merror[39m: error
+2017-11-29 20:05:44 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:05:45 - [32minfo[39m: ::1 - - [29/Nov/2017:11:05:45 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:05:45 - [31merror[39m: error
+2017-11-29 20:06:45 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:06:47 - [32minfo[39m: ::1 - - [29/Nov/2017:11:06:47 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:06:47 - [31merror[39m: error
+2017-11-29 20:07:41 - [31merror[39m: uncaughtException: listen EADDRINUSE :::8081 date=Wed Nov 29 2017 20:07:41 GMT+0900 (대한민국 표준시), pid=17268, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=33513472, heapTotal=18748496, heapUsed=13122928, loadavg=[0, 0, 0], uptime=1181151.8678982
+Error: listen EADDRINUSE :::8081
+    at Object.exports._errnoException (util.js:870:11)
+    at exports._exceptionWithHostPort (util.js:893:20)
+    at Server._listen2 (net.js:1231:14)
+    at listen (net.js:1267:10)
+    at Server.listen (net.js:1363:5)
+    at EventEmitter.listen (E:\dev\pythonworks\es2scd\node_modules\express\lib\application.js:617:24)
+    at Object.<anonymous> (E:\dev\pythonworks\es2scd\index.js:27:18)
+    at Module._compile (module.js:409:26)
+    at Object.Module._extensions..js (module.js:416:10)
+    at Module.load (module.js:343:32)
+2017-11-29 20:07:47 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:07:48 - [32minfo[39m: ::1 - - [29/Nov/2017:11:07:48 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:07:48 - [31merror[39m: error
+2017-11-29 20:14:31 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:14:39 - [32minfo[39m: ::1 - - [29/Nov/2017:11:14:39 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:14:39 - [31merror[39m: uncaughtException: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT date=Wed Nov 29 2017 20:14:39 GMT+0900 (대한민국 표준시), pid=19720, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=35987456, heapTotal=19780432, heapUsed=14071576, loadavg=[0, 0, 0], uptime=1181569.9728124
+Error: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT
+    at exports._errnoException (util.js:870:11)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:178:32)
+    at onErrorNT (internal/child_process.js:344:16)
+    at nextTickCallbackWith2Args (node.js:442:9)
+    at process._tickCallback (node.js:356:17)
+2017-11-29 20:14:46 - [31merror[39m: uncaughtException: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT date=Wed Nov 29 2017 20:14:46 GMT+0900 (대한민국 표준시), pid=19720, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=33685504, heapTotal=14654032, heapUsed=12384552, loadavg=[0, 0, 0], uptime=1181576.7251987
+Error: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT
+    at exports._errnoException (util.js:870:11)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:178:32)
+    at onErrorNT (internal/child_process.js:344:16)
+    at nextTickCallbackWith2Args (node.js:442:9)
+    at process._tickCallback (node.js:356:17)
+2017-11-29 20:14:46 - [32minfo[39m: ::1 - - [29/Nov/2017:11:14:46 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:16:11 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:16:13 - [32minfo[39m: ::1 - - [29/Nov/2017:11:16:13 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 200 26 "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:16:13 - [31merror[39m: uncaughtException: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT date=Wed Nov 29 2017 20:16:12 GMT+0900 (대한민국 표준시), pid=9104, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=36462592, heapTotal=19780432, heapUsed=14130232, loadavg=[0, 0, 0], uptime=1181663.1201402
+Error: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT
+    at exports._errnoException (util.js:870:11)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:178:32)
+    at onErrorNT (internal/child_process.js:344:16)
+    at nextTickCallbackWith2Args (node.js:442:9)
+    at process._tickCallback (node.js:356:17)
+2017-11-29 20:18:06 - [31merror[39m: uncaughtException: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT date=Wed Nov 29 2017 20:18:06 GMT+0900 (대한민국 표준시), pid=9104, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=38137856, heapTotal=20812368, heapUsed=12466488, loadavg=[0, 0, 0], uptime=1181776.4376216
+Error: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT
+    at exports._errnoException (util.js:870:11)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:178:32)
+    at onErrorNT (internal/child_process.js:344:16)
+    at nextTickCallbackWith2Args (node.js:442:9)
+    at process._tickCallback (node.js:356:17)
+2017-11-29 20:18:06 - [32minfo[39m: ::1 - - [29/Nov/2017:11:18:06 +0000] "GET /es2scd?user_seq=1 HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:19:13 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:19:18 - [32minfo[39m: ::1 - - [29/Nov/2017:11:19:18 +0000] "GET /es2scd HTTP/1.1" 200 26 "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:19:18 - [31merror[39m: uncaughtException: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT date=Wed Nov 29 2017 20:19:18 GMT+0900 (대한민국 표준시), pid=20972, uid=null, gid=null, cwd=E:\dev\pythonworks\es2scd, execPath=C:\Program Files\nodejs\node.exe, version=v4.4.0, argv=[C:\Program Files\nodejs\node.exe, E:\dev\pythonworks\es2scd\index.js], rss=36065280, heapTotal=19780432, heapUsed=14102672, loadavg=[0, 0, 0], uptime=1181848.5857482
+Error: spawn E:\dev\pythonworks\es2scd\src;C:\ProgramData\Anaconda3\python.exe ENOENT
+    at exports._errnoException (util.js:870:11)
+    at Process.ChildProcess._handle.onexit (internal/child_process.js:178:32)
+    at onErrorNT (internal/child_process.js:344:16)
+    at nextTickCallbackWith2Args (node.js:442:9)
+    at process._tickCallback (node.js:356:17)
+2017-11-29 20:28:33 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:28:35 - [32minfo[39m: ::1 - - [29/Nov/2017:11:28:35 +0000] "GET /es2scd HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:28:36 - [31merror[39m: error
+2017-11-29 20:48:47 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:48:49 - [32minfo[39m: ::1 - - [29/Nov/2017:11:48:49 +0000] "GET /es2scd HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:48:49 - [31merror[39m: error
+2017-11-29 20:49:08 - [32minfo[39m: Server Listening on port 8081
+2017-11-29 20:49:16 - [32minfo[39m: ::1 - - [29/Nov/2017:11:49:16 +0000] "GET /es2scd HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36"
+
+2017-11-29 20:51:33 - [32minfo[39m: good end
