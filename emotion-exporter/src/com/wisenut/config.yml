@@ -1,0 +1,10 @@
+reporthome: '/data/dmap-data/report'
+es_ip: '211.39.140.241'
+es_port: 9200
+
+mariadb_ip: "211.39.140.133"
+mariadb_port: 3306
+mariadb_user: "dmap"
+mariadb_password: "dmap#wisenut!"
+mariadb_db: "dmap_base"
+mariadb_charset: "utf8"
