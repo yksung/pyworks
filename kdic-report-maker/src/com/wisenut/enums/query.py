@@ -252,9 +252,11 @@ class Query():
         project_title_filter = project_filter_keywords['title_filter_keywords'].strip() if project_filter_keywords and 'title_filter_keywords' in project_filter_keywords else ''
         project_content_filter = project_filter_keywords['content_filter_keywords'].strip() if project_filter_keywords and 'content_filter_keywords' in project_filter_keywords else ''
         project_url_filter = project_filter_keywords['filter_urls'].strip() if project_filter_keywords and 'filter_urls' in project_filter_keywords else ''
+        project_regex_filter = project_filter_keywords['regex_filter_keywords'].strip() if project_filter_keywords and 'regex_filter_keywords' in project_filter_keywords else ''
         
         must_not = []
         
+        #2-1. 제목 필터 쿼리
         if len(project_title_filter)>0:
             must_not.append({
                 "query_string" : {
@@ -264,7 +266,7 @@ class Query():
                 }
             })
 
-            #2-3. 본문 필터 쿼리
+        #2-2. 본문 필터 쿼리
         if len(project_content_filter)>0:
             must_not.append({
                 "query_string" : {
@@ -274,7 +276,7 @@ class Query():
                 }
             })
 
-        #2-4.URL 필터 쿼리
+        #2-3.URL 필터 쿼리
         for url in project_url_filter.strip().split(","):
             if len(url)>0:
                 must_not.append({
@@ -282,6 +284,19 @@ class Query():
                         "doc_url" : url
                     }
                 })
+                
+        #2-4. 패턴 일치 필터 쿼리
+        if len(project_regex_filter)>0:
+            must_not.append({
+                "regexp" : {
+                    "doc_title" : ".*("+re.sub(",", "|", project_regex_filter) + ").*"
+                }
+            })
+            must_not.append({
+                "regexp" : {
+                    "doc_content" : ".*("+re.sub(",", "|", project_regex_filter) + ").*"
+                }
+            })
                 
         return {
             "bool" : { "must_not" : must_not }
