@@ -117,6 +117,7 @@ def get_project_filter_keywords(project_seq):
                   , PFK.standard_title_filter_keywords
                   , PFK.standard_content_filter_keywords
                   , PFK.filter_urls
+                  , PFK.regex_filter_keywords
                FROM tb_project_filter_keyword PFK
               WHERE PFK.project_seq = %s
                 and PFK.use_yn = 'Y'
