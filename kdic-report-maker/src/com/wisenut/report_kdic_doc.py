@@ -29,12 +29,6 @@ INDEX_DOCUMENTS="documents-*"
 INDEX_TOPICS="topics-*"
 INDEX_EMOTIONS="emotions-*"
 
-FIELDS_DOCUMENTS  = [ 'doc_id', 'doc_datetime','doc_writer','doc_url','doc_title','doc_content','depth1_nm','depth2_nm','depth3_nm']
-FIELDS_EMOTIONS   = [ 'conceptlevel1', 'conceptlevel2', 'conceptlevel3', 'emotion_type', 'matched_text.string', 'depth1_nm', 'depth2_nm', 'depth3_nm', 'doc_datetime', 'doc_writer', 'doc_url', 'doc_title']
-
-KFIELDS_DOCUMENTS = [ 'ID', '게시일','작성자','URL','제목','내용','채널1','채널2','채널3']
-KFIELDS_EMOTIONS  = [ '날짜', '대분류', '중분류', '소분류', '감성', '분석문장', '채널1', '채널2', '채널3', '게시일', '작성자', 'URL', '제목']
-
 RETRY_TIMES=5
 SLEEP_FOR_WHEN_RETRY=30 # seconds
 
@@ -230,88 +224,106 @@ class ReportKDICDocuments:
 
     # 원문
     def create_documents_list(self, params, index):
+        # title, content에 포함되어 있을 시 제외시킬 패턴 가져오기
+        project_filter_keywords = db.get_project_filter_keywords(params['project_seq'])
+        
+        EXCLUDE_PATTERNS = None
+        if project_filter_keywords and 'regex_filter_keywords' in project_filter_keywords:
+            EXCLUDE_PATTERNS = re.compile("(?i)("+re.sub(",", "|", project_filter_keywords['regex_filter_keywords'].strip())+")")
+        
         size = 10000 # 페이징 사이즈
-        if params['mode'] == MODE_DOCUMENTS:
-            output_fields_korean = KFIELDS_DOCUMENTS
-            output_fields = FIELDS_DOCUMENTS
-        elif params['mode'] == MODE_EMOTIONS:
-            output_fields_korean = KFIELDS_EMOTIONS
-            output_fields = FIELDS_EMOTIONS
 
         # 검색 시작
         result = es.get_documents(params, size, index, "")
 
+        # 시트 생성
         worksheet = self.workbook.add_worksheet("원문(%s)(0)"%"~".join([params['start_date'][0:10],params['end_date'][0:10]]))
 
         # 엑셀 헤더
-        for colidx, field in enumerate(output_fields_korean):
-            worksheet.write(0, colidx, field, self.header)
-        
-        # 정확도(Score) 추가
-        worksheet.write(0, len(output_fields_korean), '정확도', self.header)    
+        worksheet.write(0, 0, 'ID', self.header)
+        worksheet.write(0, 1, '게시일', self.header)
+        worksheet.write(0, 2, '작성자', self.header)
+        worksheet.write(0, 3, '제목', self.header)
+        worksheet.write(0, 4, '내용', self.header)
+        worksheet.write(0, 5, '채널1', self.header)
+        worksheet.write(0, 6, '채널2', self.header)
+        worksheet.write(0, 7, '채널3', self.header)
+        worksheet.write(0, 8, '정확도', self.header) # 정확도(Score) 추가    
         
         logger.info("<%s> Total Documents : %d" % (self.dataset_names, result["hits"]["total"]))
         
+        # 엑셀 본문
         if "hits" in result and result["hits"]["total"] > 0:
-
-            for row, this_result in enumerate(result["hits"]["hits"]):
-                for col, field in enumerate(output_fields):
-                    if field == 'doc_id':
-                        val = this_result["_id"]
-                        worksheet.write(row+1, col, val, self.default)
-
-                        continue
-
-                    if "." in field:
-                        field, subfield = field.split(".")
-
-                        val = this_result["_source"][field][subfield] if field in this_result["_source"] and subfield in this_result["_source"][field] else "null"
-                        if field in ['doc_writer', 'doc_title', 'doc_content']:
-                            val = re.sub("[\+=\-/]", "", str(val))
-                            
-                        worksheet.write(row+1, col, val, self.default)
-                    else:
-                        val = this_result["_source"][field] if field in this_result["_source"] else "null"
-                        if field in ['doc_writer', 'doc_title', 'doc_content']:
-                            val = re.sub("[\+=\-/]", "", str(val))
-                        
-                        worksheet.write(row+1, col, val, self.default)
+            row = 0
+            for this_result in result["hits"]["hits"]:
+                doc_id       = this_result["_id"]
+                doc_datetime = this_result["_source"]["doc_datetime"]
+                doc_writer   = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_writer"]))
+                doc_title    = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_title"]))
+                doc_content  = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_content"]))
+                depth1_nm    = this_result["_source"]["depth1_nm"]
+                depth2_nm    = this_result["_source"]["depth2_nm"]
+                depth3_nm    = this_result["_source"]["depth3_nm"]
+                score        = this_result["_score"]
                 
-                # 검색정확도(Score) 필드 추가       
-                worksheet.write(row+1, len(output_fields), this_result['_score'], self.default)
+                # 2018.04.05 특정 패턴이 등장하는 title, content가 포함되어 있을 경우 row에서 제외.
+                if EXCLUDE_PATTERNS is not None and (EXCLUDE_PATTERNS.search(doc_title) is not None or EXCLUDE_PATTERNS.search(doc_content) is not None):
+                    continue
+                
+                row += 1
+                worksheet.write(row, 0, doc_id, self.default)
+                worksheet.write(row, 1, doc_datetime, self.default)
+                worksheet.write(row, 2, doc_writer, self.default)
+                worksheet.write(row, 3, doc_title, self.default)
+                worksheet.write(row, 4, doc_content, self.default)
+                worksheet.write(row, 5, depth1_nm, self.default)
+                worksheet.write(row, 6, depth2_nm, self.default)
+                worksheet.write(row, 7, depth3_nm, self.default)
+                worksheet.write(row, 8, score, self.default)
 
             # 결과건수가 한 페이지 사이즈보다 큰 경우, scroll을 이용해서 paging하며 결과를 가져옴.
             # 용량이 클 것으로 예상하여 엑셀 파일도 새로 생성.
             if "hits" in result and result["hits"]["total"] > size:
+                row = 0
                 for page in range(1, math.ceil(result["hits"]["total"]/size)): # 0, 1, 2, ....
                     worksheet = self.workbook.add_worksheet("원문(%s)(%d)"%("~".join([params['start_date'][0:10],params['end_date'][0:10]]),page))
+                    # 엑셀 헤더
+                    worksheet.write(0, 0, 'ID', self.header)
+                    worksheet.write(0, 1, '게시일', self.header)
+                    worksheet.write(0, 2, '작성자', self.header)
+                    worksheet.write(0, 3, '제목', self.header)
+                    worksheet.write(0, 4, '내용', self.header)
+                    worksheet.write(0, 5, '채널1', self.header)
+                    worksheet.write(0, 6, '채널2', self.header)
+                    worksheet.write(0, 7, '채널3', self.header)
+                    worksheet.write(0, 8, '정확도', self.header) # 정확도(Score) 추가    
                     
                     scrolled_result = es.get_documents(params, size, index, scroll_id=result["_scroll_id"])
-                    for row, this_result in enumerate(scrolled_result["hits"]["hits"]):
-                        for col, field in enumerate(output_fields):
-                            if field == 'doc_id':
-                                val = this_result["_id"]
-                                worksheet.write(row+1, col, val, self.default)
-        
-                                continue
-        
-                            if "." in field:
-                                field, subfield = field.split(".")
-        
-                                val = this_result["_source"][field][subfield] if field in this_result["_source"] and subfield in this_result["_source"][field] else "null"
-                                if field in ['doc_writer', 'doc_title', 'doc_content']:
-                                    val = re.sub("[\+=\-/]", "", str(val))
-                                    
-                                worksheet.write(row+1, col, val, self.default)
-                            else:
-                                val = this_result["_source"][field] if field in this_result["_source"] else "null"
-                                if field in ['doc_writer', 'doc_title', 'doc_content']:
-                                    val = re.sub("[\+=\-/]", "", str(val))
-                                    
-                                worksheet.write(row+1, col, val, self.default)
+                    for this_result in scrolled_result["hits"]["hits"]:
+                        doc_id       = this_result["_id"]
+                        doc_datetime = this_result["_source"]["doc_datetime"]
+                        doc_writer   = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_writer"]))
+                        doc_title    = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_title"]))
+                        doc_content  = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_content"]))
+                        depth1_nm    = this_result["_source"]["depth1_nm"]
+                        depth2_nm    = this_result["_source"]["depth2_nm"]
+                        depth3_nm    = this_result["_source"]["depth3_nm"]
+                        score        = this_result["_score"]
                         
-                        # 검색정확도(Score) 필드 추가       
-                        worksheet.write(row+1, len(output_fields), this_result['_score'], self.default)
+                        # 2018.04.05 특정 패턴이 등장하는 title, content가 포함되어 있을 경우 row에서 제외.
+                        if EXCLUDE_PATTERNS is not None and (EXCLUDE_PATTERNS.search(doc_title) is not None or EXCLUDE_PATTERNS.search(doc_content) is not None):
+                            continue
+                        
+                        row += 1
+                        worksheet.write(row, 0, doc_id, self.default)
+                        worksheet.write(row, 1, doc_datetime, self.default)
+                        worksheet.write(row, 2, doc_writer, self.default)
+                        worksheet.write(row, 3, doc_title, self.default)
+                        worksheet.write(row, 4, doc_content, self.default)
+                        worksheet.write(row, 5, depth1_nm, self.default)
+                        worksheet.write(row, 6, depth2_nm, self.default)
+                        worksheet.write(row, 7, depth3_nm, self.default)
+                        worksheet.write(row, 8, score, self.default)
 
 
                     # 마지막 페이지를 처리하고 나면 scroll을 clear
