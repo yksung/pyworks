@@ -218,7 +218,8 @@ async def analyze(text, debug=False):
             word = x.split("\t")[0]
             tag = x.split("\t")[1]
             
-            if tag.split(",")[0] in ["MM", "NNG", "NNP", "XPN", "XR", "XSN", "SN", "NNBC",  "SL", ]:
+            #if tag.split(",")[0] in ["MM", "NNG", "NNP", "XPN", "XR", "XSN", "SN", "NNBC",  "SL", ]:
+            if tag.split(",")[0] in ["MM", "NNG", "NNP", "XPN", "XR", "NNBC",  "SL", ]:
                 ret.append(word)
             elif tag.split(",")[0] in ["VV", "VA"]: #, "XSV"
                 ret.append(word+"다")
@@ -441,6 +442,7 @@ def find_vv_word(_scroll):
         
 
 if __name__ == '__main__':
+    '''
     es_result = find_vv_word(None)
     
     logger.info("<PAGE:0>")
@@ -468,8 +470,9 @@ if __name__ == '__main__':
         if count == 1:
             continue
         
-        print(text, end="\t")
+        print(">>> 원문 >>>" + text)
         
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.ensure_future(isNoun(text, True)))
-    '''
+        #loop.run_until_complete(asyncio.ensure_future(isNoun(text, True)))
+        loop.run_until_complete(asyncio.ensure_future(get_close_word(text, True)))
+    

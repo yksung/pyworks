@@ -133,6 +133,66 @@ async def get_close_word(text, debug=False):
 
 
 
+'''
+async def analyze(text, debug=False):
+    from subprocess import run, PIPE
+    
+    mecabBin = ''
+    mecabDic = ''
+    if sys.platform.find('linux')>=0:
+        mecabBin = '/usr/local/bin/mecab'
+        mecabDic = '/usr/local/lib/mecab/dic/mecab-ko-dic/'
+    elif sys.platform.find('win')>=0:
+        mecabBin = 'C:\\mecab\\mecab'
+        mecabDic = 'C:\\mecab\\mecab-ko-dic'
+    else:
+        raise NoMecabAvailable 
+    
+    p = run([mecabBin, '-d', mecabDic, '-N', '2'], stdout=PIPE, input=text, encoding="UTF-8")
+    if debug: print(p.stdout)
+    
+    result = re.split("(\n|EOS)", p.stdout)      
+    
+    ret=[]
+    word_tag_map = {}
+    for x in result:
+        if x.find("\t")>=0:
+            word = x.split("\t")[0]
+            tag = x.split("\t")[1]
+            
+            if tag.split(",")[4] == "Compound": # 복합명사일 경우 이 단어만 map에 넣고 끝냄.
+                word_tag_map["Compound"] = word
+                break
+            elif re.match("(J|X).*", tag) is not None:
+                break
+            else:
+                if word in word_tag_map:
+                    word_tag_map[word].append(tag.split(",")[0]) # list에 합침
+                else:
+                    word_tag_map[word] = [tag.split(",")[0]]
+        else:
+            continue
+        
+    if "Compound" in word_tag_map:
+        if debug : print("\t\t\t\t\t\t\t\t\t\t\t"+word_tag_map['Compound'])
+        
+        return word_tag_map['Compound']
+    else:
+        for item in word_tag_map.items():
+            isMeaningfulTag = True
+            
+            for tag in item[1]:
+                if tag not in ["MM", "NNG", "NNP", "XPN", "XR", "SL" ]:
+                    isMeaningfulTag = False
+                    break
+                    
+            if isMeaningfulTag and "".join(ret).find(item[0])<0:
+                ret.append(item[0])
+
+        if debug : print("\t\t\t\t\t\t\t\t\t\t\t"+"".join(ret))
+        
+        return "".join(ret)
+'''
 
 async def analyze(text, debug=False):
     from subprocess import run, PIPE
@@ -173,101 +233,41 @@ async def analyze(text, debug=False):
 
         
 async def make_bulk(class_term_tuple, data):
-    bulk_body = None
-
     term = class_term_tuple[1]
     topic_class = class_term_tuple[0]
-    
-    inline_script = ""
-    inline_script+="ctx._source.project_seq?.addAll(params.project_seq); Set hs = new HashSet(); hs.addAll(ctx._source.project_seq); ctx._source.project_seq.clear(); ctx._source.project_seq.addAll(hs);"
-    inline_script+="ctx._source.topic_id=params.topic_id;"
-    inline_script+="ctx._source.topic=params.topic;"
-    inline_script+="ctx._source.topic_attr=params.topic_attr;"
-    inline_script+="ctx._source.topic_class=params.topic_class;"
-    inline_script+="ctx._source.related_words=params.related_words;"
-    inline_script+="ctx._source.doc_id=params.doc_id;"
-    inline_script+="ctx._source.doc_datetime=params.doc_datetime;"
-    inline_script+="ctx._source.doc_url=params.doc_url;"
-    inline_script+="ctx._source.doc_writer=params.doc_writer;"
-    inline_script+="ctx._source.doc_title=params.doc_title;"
-    inline_script+="ctx._source.doc_content=params.doc_content;"
-    inline_script+="ctx._source.depth1_seq=params.depth1_seq;"
-    inline_script+="ctx._source.depth2_seq=params.depth2_seq;"
-    inline_script+="ctx._source.depth3_seq=params.depth3_seq;"
-    inline_script+="ctx._source.depth1_nm=params.depth1_nm;"
-    inline_script+="ctx._source.depth2_nm=params.depth2_nm;"
-    inline_script+="ctx._source.depth3_nm=params.depth3_nm;"
-    inline_script+="ctx._source.upd_datetime=params.upd_datetime;"
-    inline_script+="ctx._source.is_a_real_verb=params.is_a_real_verb;"
-    
+   
+    topic_dict = {}
     
     if len(term.strip())>0:
-        topic_dict = {}
         
         topic = term.split(teaclient.WEIGHT_DELIMITER)[0]
         topic_id = md5Generator([data["_id"], topic])
-        topic_attr = '' #get_topic_attr(topic)
         related_words = await related_word_extractor(data['_id'], data['_source']['doc_datetime'], topic) if topic_class == 'NN' else ''
         
         topic_dict =  {
-            "topic_id" : topic_id,
+            #"topic_id" : topic_id,
             "topic" : topic,
-            "topic_attr" : topic_attr,
+            #"topic_attr" : topic_attr,
             "topic_class" : 'NN' if topic_class == 'NN' else 'VV',
             "related_words" : related_words,
             "doc_id" : data['_id'],
-            "doc_datetime" : data['_source']['doc_datetime'],
-            "doc_url" : data['_source']['doc_url'],
-            "doc_writer" : data['_source']['doc_writer'],
-            "doc_title" : data['_source']['doc_title'].replace("\\", "").replace("\n", "").replace("\r", ""),
-            "doc_content" : data['_source']['doc_content'].replace("\\", "").replace("\n", "").replace("\r", ""),
-            "depth1_seq" : data['_source']['depth1_seq'],
-            "depth2_seq" : data['_source']['depth2_seq'],
-            "depth3_seq" : data['_source']['depth3_seq'],
-            "depth1_nm" : data['_source']['depth1_nm'],
-            "depth2_nm" : data['_source']['depth2_nm'],
-            "depth3_nm" : data['_source']['depth3_nm'],
-            "project_seq" : data['_source']['project_seq'],
-            "upd_datetime" : get_current_datetime(),
-            "is_a_real_verb" : "N" if topic_class == 'NN' else 'Y'
+            #"doc_datetime" : data['_source']['doc_datetime'],
+            #"doc_url" : data['_source']['doc_url'],
+            #"doc_writer" : data['_source']['doc_writer'],
+            #"doc_title" : data['_source']['doc_title'].replace("\\", "").replace("\n", "").replace("\r", ""),
+            #"doc_content" : data['_source']['doc_content'].replace("\\", "").replace("\n", "").replace("\r", ""),
+            #"depth1_seq" : data['_source']['depth1_seq'],
+            #"depth2_seq" : data['_source']['depth2_seq'],
+            #"depth3_seq" : data['_source']['depth3_seq'],
+            #"depth1_nm" : data['_source']['depth1_nm'],
+            #"depth2_nm" : data['_source']['depth2_nm'],
+            #"depth3_nm" : data['_source']['depth3_nm'],
+            #"project_seq" : data['_source']['project_seq'],
+            #"upd_datetime" : get_current_datetime(),
+            #"is_a_real_verb" : "N" if topic_class == 'NN' else 'Y'
         }
         
-        bulk_body = {
-            "_op_type": "update",
-            "_index": await find_to_which_index(topic_id, data['_source']['doc_datetime']),
-            "_type": TYPE_DOC,
-            "_id": topic_id,
-            "_source": {
-                "script": {
-                    "lang" : "painless",
-                    "inline": inline_script, 
-                    "params": topic_dict
-                },
-                "upsert": topic_dict
-            }
-        }
-        '''
-        bulk_body = [
-            {
-                "update" : {
-                    "_index": find_to_which_index(topic_id, data['_source']['doc_datetime']),
-                    "_type": TYPE_DOC,
-                    "_id": topic_id
-                }
-            },
-            {
-                "script": {
-                    "lang" : "painless",
-                    "inline": inline_script, 
-                    "params": topic_dict
-                },
-                "upsert": topic_dict
-            }
-        ]
-        '''
-        
-    #await asyncio.sleep(1)
-    return bulk_body  # ======> 여기서 바로  bulk를 넣어버림.
+    return topic_dict
 
 
 
@@ -335,123 +335,13 @@ def insert_topics(data):
                     newArr.append(('NN', x[0]))
                 else:
                     newArr.append(('VV', x[0]))
-                        
             
-            from elasticsearch import Elasticsearch
-            es_client=Elasticsearch(":".join([es_ip, str(es_port)]))
+            fts = [ make_bulk(t, data) for t in (newArr) ]
+            #t.cancel()
+            some_bulks = yield from asyncio.gather(*fts)
             
-            try:
-                #fts = [ make_bulk(t, data) for t in (terms+verbs) ]
-                fts = [ make_bulk(t, data) for t in (newArr) ]
-                #t.cancel()
-                some_bulks = yield from asyncio.gather(*fts)
-                '''
-                thisBulk = [
-                  [
-                    {'update' : { '_index' : 'topics-2018.01.01', '_type' : 'doc', ....... },
-                    {'topic' : '증권', 'topic_id' : ..... }
-                  ],
-                  [
-                    {'update' : { '_index' : 'topics-2018.01.01', '_type' : 'doc', ....... },
-                    {'topic' : '은행', 'topic_id' : ..... },
-                  ]
-                  ...
-                ]
-                
-                thisBulk = yield from asyncio.gather(*fts)
-                some_bulks = [ y for x in thisBulk for y in x ]
-                '''
-                
-                bulk_result += helpers.bulk(es_client, list(filter(lambda x:x and len(x)>0, some_bulks)), refresh=True)[0]
-                #bulk_result = yield from es.bulk(filter(lambda x:x and len(x)>0, some_bulks))
-                
-            except EsError as e:
-                retry = 0
-                logger.error("[insert_topics] %s (retry:%d)"%(str(e), retry))
-                while retry <= 5:
-                    retry += 1
-                    print("10초 간 쉬었다가 다시!\n")
-                    time.sleep(10)
-                    
-                    try:
-                        print("색인 {0}번째 재시도..".format(retry))
-                        bulk_result += helpers.bulk(es_client, list(filter(lambda x:x and len(x)>0, some_bulks)), refresh=True)[0]
-                        #bulk_result = yield from es.bulk(filter(lambda x:x and len(x)>0, some_bulks))
-                        break
-                    except EsError as e:
-                        logger.error("[insert_topics] %s (retry:%d)"%(str(e), retry))
-                        continue    
-            
-            except exceptions.ConnectionTimeout as timeoutError:
-                retry = 0
-                logger.error("[insert_topics] %s (retry:%d)"%(str(timeoutError), retry))
-                while retry <= 5:
-                    retry += 1
-                    print("10초 간 쉬었다가 다시!\n")
-                    time.sleep(10)
-                    
-                    try:
-                        print("색인 {0}번째 재시도..".format(retry))
-                        bulk_result += helpers.bulk(es_client, list(filter(lambda x:x and len(x)>0, some_bulks)), refresh=True)[0]
-                        #bulk_result = yield from es.bulk(filter(lambda x:x and len(x)>0, some_bulks))
-                        break
-                    except exceptions.ConnectionTimeout as timeoutError:
-                        logger.error("[insert_topics] %s (retry:%d)"%(str(timeoutError), retry))
-                        continue
-            except aiohttp.client_exceptions.ClientConnectorError as connectError:
-                retry = 0
-                logger.error("[insert_topics] %s (retry:%d)"%(str(connectError), retry))
-                while retry <= 5:
-                    retry += 1
-                    print("10초 간 쉬었다가 다시!\n")
-                    time.sleep(10)
-                    
-                    try:
-                        print("색인 {0}번째 재시도..".format(retry))
-                        bulk_result += helpers.bulk(es_client, list(filter(lambda x:x and len(x)>0, some_bulks)), refresh=True)[0]
-                        #bulk_result = yield from es.bulk(filter(lambda x:x and len(x)>0, some_bulks))
-                        break
-                    except aiohttp.client_exceptions.ClientConnectorError as connectError:
-                        logger.error("[insert_topics] %s (retry:%d)"%(str(connectError), retry))
-                        continue
-            except OSError as oserror:
-                retry = 0
-                logger.error("[insert_topics] %s (retry:%d)"%(str(oserror), retry))
-                while retry <= 5:
-                    retry += 1
-                    print("10초 간 쉬었다가 다시!\n")
-                    time.sleep(10)
-                    
-                    try:
-                        print("색인 {0}번째 재시도..".format(retry))
-                        bulk_result += helpers.bulk(es_client, list(filter(lambda x:x and len(x)>0, some_bulks)), refresh=True)[0]
-                        #bulk_result = yield from es.bulk(filter(lambda x:x and len(x)>0, some_bulks))
-                        break
-                    except OSError as oserror:
-                        logger.error("[insert_topics] %s (retry:%d)"%(str(oserror), retry))
-                        continue
-            except urllib3.exceptions.NewConnectionError as connectionError:
-                retry = 0
-                logger.error("[insert_topics] %s (retry:%d)"%(str(connectionError), retry))
-                while retry <= 5:
-                    retry += 1
-                    print("10초 간 쉬었다가 다시!\n")
-                    time.sleep(10)
-                    
-                    try:
-                        print("색인 {0}번째 재시도..".format(retry))
-                        bulk_result += helpers.bulk(es_client, list(filter(lambda x:x and len(x)>0, some_bulks)), refresh=True)[0]
-                        #bulk_result = yield from es.bulk(filter(lambda x:x and len(x)>0, some_bulks))
-                        break
-                    except urllib3.exceptions.NewConnectionError as connectionError:
-                        logger.error("[insert_topics] %s (retry:%d)"%(str(connectionError), retry))
-                        continue
-            except:
-                ex = traceback.format_exc()
-                logger.error("[insert_topics] unknown error. Traceback >> %s " % ex)
-
-            logger.debug("%d are successfully inserted."%bulk_result)
-            #logger.debug("%d are successfully inserted."%len(bulk_result['items']))
+            for bulk in some_bulks:
+                print(bulk)
        
     except ParseError as xmlerror:
         logger.error("[insert_topics] TeaClient failed. (%s)"%str(xmlerror))
@@ -495,7 +385,22 @@ def get_request_query(params, scroll_id=None):
             filter.append(queryObj.get_period_query(params['mode']))
             
         request["query"]["bool"]["filter"] = filter
-        request["query"]["bool"]["must"] = queryObj.get_total_dataset_query(params['project_seqs'])
+        #request["query"]["bool"]["must"] = queryObj.get_total_dataset_query(params['project_seqs'])
+        request["query"]["bool"]["must"] = {
+            "bool" : {
+                "should" : [
+                    {
+                        "query_string": {
+                            "fields": ["doc_title^100", "doc_content"],
+                            "query" : "신한은행",
+                            "default_operator" : "AND",
+                            "tie_breaker" : 0.0
+                        }
+                    }
+                ]
+            }
+        }
+        
     
     
     logger.debug("[get_request_query] Query >>> %s " % json.dumps(request) )
@@ -559,15 +464,6 @@ def main(mode, project_seqs, start_date, end_date):
                     
                     logger.info("<Total:%d>"%es_result['hits']['total'] )
                     for idx, doc in enumerate(resultlist):
-                        if idx % 100 == 0:
-                            logger.info("[%d]"%idx)
-                            
-                            print("[%d]"%idx, end="")
-                            sys.stdout.flush()
-                        else:
-                            print(".", end="")
-                            sys.stdout.flush()
-                            
                         loop = asyncio.get_event_loop()
                         loop.run_until_complete(asyncio.ensure_future(insert_topics(doc)))
                         
@@ -632,11 +528,13 @@ def md5Generator(arr):
 
 
 if __name__ == '__main__':
-    mode = sys.argv[1]
-    start_date = sys.argv[2]
-    end_date = sys.argv[3]
     
-    project_seqs = mariadbclient.get_all_projectseqs_of('kdic') # DB에서 kdic에 해당하는 project를 전체 가져와야함.
+    mode = "always"
+    start_date = "2018-04-04T00:00:00"
+    end_date = "2018-04-05T00:00:00"
+    
+    #project_seqs = mariadbclient.get_all_projectseqs_of('kdic') # DB에서 kdic에 해당하는 project를 전체 가져와야함.
+    project_seqs = ['180'] 
     
     ############# setting logging
     logger = myLogger.getMyLogger('kdic-topics-' + mode, hasConsoleHandler=False, hasRotatingFileHandler=True, logLevel=logging.DEBUG)
@@ -645,7 +543,7 @@ if __name__ == '__main__':
     logger.info("=================================================================")
     logger.info("- ES Connection %s %d" % (es_ip, es_port) )
     logger.info("- mode\t\t:\t%s" % mode)
-    logger.info("- project_seqs\t:\t%s" % ','.join(str(seq[0]) for seq in project_seqs))
+    logger.info("- project_seqs\t:\t%s" % ','.join(project_seqs))
     logger.info("- start_date\t:\t%s" % start_date)
     logger.info("- end_date\t:\t%s" % end_date)
     logger.info("=================================================================")
@@ -655,8 +553,17 @@ if __name__ == '__main__':
         #logger.info(">>>>> project_seq  %s" % project_seq)
         #print(">>>>> project_seq  %s" % project_seq)
         
-    main(mode, ','.join(str(seq[0]) for seq in project_seqs), start_date, end_date)
+    main(mode, ','.join(project_seqs), start_date, end_date)
         
     '''
-    print(get_request_query({ "mode":mode, "start_date":start_date, "end_date":end_date, "project_seqs":project_seqs }))
+    count = 0
+    for text in sys.argv:
+        count+=1
+        if count == 1:
+            continue
+        
+        print(">>> 원문 >>>" + text)
+        
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.ensure_future(analyze(text, True)))
     '''
