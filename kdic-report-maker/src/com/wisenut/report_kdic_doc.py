@@ -243,12 +243,13 @@ class ReportKDICDocuments:
         worksheet.write(0, 0, 'ID', self.header)
         worksheet.write(0, 1, '게시일', self.header)
         worksheet.write(0, 2, '작성자', self.header)
-        worksheet.write(0, 3, '제목', self.header)
-        worksheet.write(0, 4, '내용', self.header)
-        worksheet.write(0, 5, '채널1', self.header)
-        worksheet.write(0, 6, '채널2', self.header)
-        worksheet.write(0, 7, '채널3', self.header)
-        worksheet.write(0, 8, '정확도', self.header) # 정확도(Score) 추가    
+        worksheet.write(0, 3, 'URL', self.header)
+        worksheet.write(0, 4, '제목', self.header)
+        worksheet.write(0, 5, '내용', self.header)
+        worksheet.write(0, 6, '채널1', self.header)
+        worksheet.write(0, 7, '채널2', self.header)
+        worksheet.write(0, 8, '채널3', self.header)
+        worksheet.write(0, 9, '정확도', self.header) # 정확도(Score) 추가    
         
         logger.info("<%s> Total Documents : %d" % (self.dataset_names, result["hits"]["total"]))
         
@@ -259,6 +260,7 @@ class ReportKDICDocuments:
                 doc_id       = this_result["_id"]
                 doc_datetime = this_result["_source"]["doc_datetime"]
                 doc_writer   = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_writer"]))
+                doc_url      = this_result["_source"]["doc_url"]
                 doc_title    = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_title"]))
                 doc_content  = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_content"]))
                 depth1_nm    = this_result["_source"]["depth1_nm"]
@@ -274,12 +276,13 @@ class ReportKDICDocuments:
                 worksheet.write(row, 0, doc_id, self.default)
                 worksheet.write(row, 1, doc_datetime, self.default)
                 worksheet.write(row, 2, doc_writer, self.default)
-                worksheet.write(row, 3, doc_title, self.default)
-                worksheet.write(row, 4, doc_content, self.default)
-                worksheet.write(row, 5, depth1_nm, self.default)
-                worksheet.write(row, 6, depth2_nm, self.default)
-                worksheet.write(row, 7, depth3_nm, self.default)
-                worksheet.write(row, 8, score, self.default)
+                worksheet.write(row, 3, doc_url, self.default)
+                worksheet.write(row, 4, doc_title, self.default)
+                worksheet.write(row, 5, doc_content, self.default)
+                worksheet.write(row, 6, depth1_nm, self.default)
+                worksheet.write(row, 7, depth2_nm, self.default)
+                worksheet.write(row, 8, depth3_nm, self.default)
+                worksheet.write(row, 9, score, self.default)
 
             # 결과건수가 한 페이지 사이즈보다 큰 경우, scroll을 이용해서 paging하며 결과를 가져옴.
             # 용량이 클 것으로 예상하여 엑셀 파일도 새로 생성.
@@ -291,18 +294,20 @@ class ReportKDICDocuments:
                     worksheet.write(0, 0, 'ID', self.header)
                     worksheet.write(0, 1, '게시일', self.header)
                     worksheet.write(0, 2, '작성자', self.header)
-                    worksheet.write(0, 3, '제목', self.header)
-                    worksheet.write(0, 4, '내용', self.header)
-                    worksheet.write(0, 5, '채널1', self.header)
-                    worksheet.write(0, 6, '채널2', self.header)
-                    worksheet.write(0, 7, '채널3', self.header)
-                    worksheet.write(0, 8, '정확도', self.header) # 정확도(Score) 추가    
+                    worksheet.write(0, 3, 'URL', self.header)
+                    worksheet.write(0, 4, '제목', self.header)
+                    worksheet.write(0, 5, '내용', self.header)
+                    worksheet.write(0, 6, '채널1', self.header)
+                    worksheet.write(0, 7, '채널2', self.header)
+                    worksheet.write(0, 8, '채널3', self.header)
+                    worksheet.write(0, 9, '정확도', self.header) # 정확도(Score) 추가    
                     
                     scrolled_result = es.get_documents(params, size, index, scroll_id=result["_scroll_id"])
                     for this_result in scrolled_result["hits"]["hits"]:
                         doc_id       = this_result["_id"]
                         doc_datetime = this_result["_source"]["doc_datetime"]
                         doc_writer   = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_writer"]))
+                        doc_url      = this_result["_source"]["doc_url"]
                         doc_title    = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_title"]))
                         doc_content  = re.sub("[\+=\-/]", "", str(this_result["_source"]["doc_content"]))
                         depth1_nm    = this_result["_source"]["depth1_nm"]
@@ -318,12 +323,13 @@ class ReportKDICDocuments:
                         worksheet.write(row, 0, doc_id, self.default)
                         worksheet.write(row, 1, doc_datetime, self.default)
                         worksheet.write(row, 2, doc_writer, self.default)
-                        worksheet.write(row, 3, doc_title, self.default)
-                        worksheet.write(row, 4, doc_content, self.default)
-                        worksheet.write(row, 5, depth1_nm, self.default)
-                        worksheet.write(row, 6, depth2_nm, self.default)
-                        worksheet.write(row, 7, depth3_nm, self.default)
-                        worksheet.write(row, 8, score, self.default)
+                        worksheet.write(row, 3, doc_url, self.default)
+                        worksheet.write(row, 4, doc_title, self.default)
+                        worksheet.write(row, 5, doc_content, self.default)
+                        worksheet.write(row, 6, depth1_nm, self.default)
+                        worksheet.write(row, 7, depth2_nm, self.default)
+                        worksheet.write(row, 8, depth3_nm, self.default)
+                        worksheet.write(row, 9, score, self.default)
 
 
                     # 마지막 페이지를 처리하고 나면 scroll을 clear
