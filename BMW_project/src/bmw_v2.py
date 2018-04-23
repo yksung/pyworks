@@ -12,6 +12,8 @@ import re
 import sys, time
 import logging
 import myLogger
+import math
+import traceback
 
 #===================== logger 설정 =====================
 logger = myLogger.getMyLogger('bmw2.1', hasConsoleHandler=False, hasRotatingFileHandler=True, logLevel=logging.DEBUG)
@@ -22,16 +24,22 @@ es_host = "211.39.140.78"
 es_port = 9200
 
 INDEX_NAME="bmw_v2.1"
+PAGE_SIZE=10000
 #========================================================
 
  
 #===================== BICAnalyzer 관련 =====================
-bica_host = "211.39.140.97"
+bica_host = "211.39.140.106"
 bica_port = "21000"
 
-RSA_CONCEPT_ID=7 # RSA Concept ID
-SALES_CONCEPT_ID=8 # Sales/After Sales Concept ID
-OVERALL_RSA_FEEDBACK_CONCEPT_ID=10 # Overall RSA Feedback Concept ID
+_1_RSA_CONCEPT_ID					= 7 # RSA Concept ID
+_2_RSA_GENERAL_SATISFACTION			= 13
+_3_OVERALL_RSA_FEEDBACK_CONCEPT_ID	= 10 # Overall RSA Feedback Concept ID
+_4_SALES_CONCEPT_ID					= 8 # Sales/After Sales Concept ID
+_5_SALES_GENERAL_SATISFACTION		= 12
+
+ETC_CATEGORY_LABEL=re.compile("(가중치|브랜드)")
+
 #========================================================
 
 
@@ -58,6 +66,15 @@ def csv_check(filename):
 1. csv2es : 우선 csv 데이터를 Elasticsearch에 넣음.
 2. analyze_and_save2es : es에서 검색해서 가져온 값에 대해서 분석을 돌려서 분석 결과를 emotions type으로 저장.
 """
+
+
+
+def get_current_datetime():
+    ymdhms = str(dt.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    
+
+    return ymdhms  
+
 
 
 
@@ -121,7 +138,8 @@ def csv2es(path):
 						"doc_id" : docid,
 						"doc_datetime" : csv_datetime,
 						"doc_content" : comment.replace('\r', '').replace('\n', ''),
-						"user_id" : "bmw"
+						"user_id" : "bmw",
+						"upd_datetime" : get_current_datetime()
 					}
 				}
 				
@@ -216,17 +234,25 @@ def insert_emotions(data):
 		logger.info("Delete old emotions for %s" % data['_id'])
 		removeOldEmotions(data['_id'], es_request)
 	
-	bica_result = request2Bica(data, RSA_CONCEPT_ID)
+	bica_result = request2Bica(data, _1_RSA_CONCEPT_ID)
 	if bica_result is not None and 'result' in bica_result and len(bica_result['result']):
-		insertEmotionsBulk(data['_source']['user_id'], data['_source']['doc_id'], bica_result, RSA_CONCEPT_ID)
+		insertEmotionsBulk(data['_source']['user_id'], data['_source']['doc_id'], bica_result, _1_RSA_CONCEPT_ID)
 	else:
-		bica_result = request2Bica(data, OVERALL_RSA_FEEDBACK_CONCEPT_ID)
+		bica_result = request2Bica(data, _2_RSA_GENERAL_SATISFACTION)
 		if bica_result is not None and 'result' in bica_result and len(bica_result['result']):
-			insertEmotionsBulk(data['_source']['user_id'], data['_source']['doc_id'], bica_result, OVERALL_RSA_FEEDBACK_CONCEPT_ID)
+			insertEmotionsBulk(data['_source']['user_id'], data['_source']['doc_id'], bica_result, _2_RSA_GENERAL_SATISFACTION)
 		else:
-			bica_result = request2Bica(data, SALES_CONCEPT_ID)
+			bica_result = request2Bica(data, _3_OVERALL_RSA_FEEDBACK_CONCEPT_ID)
 			if bica_result is not None and 'result' in bica_result and len(bica_result['result']):
-				insertEmotionsBulk(data['_source']['user_id'], data['_source']['doc_id'], bica_result, SALES_CONCEPT_ID)
+				insertEmotionsBulk(data['_source']['user_id'], data['_source']['doc_id'], bica_result, _3_OVERALL_RSA_FEEDBACK_CONCEPT_ID)
+			else:
+				bica_result = request2Bica(data, _4_SALES_CONCEPT_ID)
+				if bica_result is not None and 'result' in bica_result and len(bica_result['result']):
+					insertEmotionsBulk(data['_source']['user_id'], data['_source']['doc_id'], bica_result, _4_SALES_CONCEPT_ID)
+				else:
+					bica_result = request2Bica(data, _5_SALES_GENERAL_SATISFACTION)
+					if bica_result is not None and 'result' in bica_result and len(bica_result['result']):
+						insertEmotionsBulk(data['_source']['user_id'], data['_source']['doc_id'], bica_result, _5_SALES_GENERAL_SATISFACTION)
 				
 				
 
@@ -264,10 +290,11 @@ def insertEmotionsBulk(userId, docId, bicaResult, conceptID):
 		es_insert_req['lsp'] = result['lsp']#.encode('utf-8')
 		es_insert_req['sentence'] = result['sentence']
 		es_insert_req['matched_text'] = result['matched_text']
+		es_insert_req['upd_datetime'] = get_current_datetime()
 		#es_insert_req['variables'] = [ var for variable in result['variables'] ]
 							
 		# topic이 존재하는 경우
-		if conceptID in [RSA_CONCEPT_ID, SALES_CONCEPT_ID]:
+		if conceptID in [_1_RSA_CONCEPT_ID, _2_RSA_GENERAL_SATISFACTION, _4_SALES_CONCEPT_ID, _5_SALES_GENERAL_SATISFACTION]:
 			es_insert_req['categories'] = result['categories']
 		else: # Sales, RSA의 Topic에 모두 해당하지 않는 경우, Overall RSA Feedback으로 간주.
 			es_insert_req['categories'] = [{
@@ -282,24 +309,47 @@ def insertEmotionsBulk(userId, docId, bicaResult, conceptID):
 		es_conn = http.client.HTTPConnection(es_host, es_port)
 		es_conn.connect()				
 		es_conn.request("POST", "/"+INDEX_NAME+"/emotions/"+emotion_id+"?parent="+docId, json.dumps(es_insert_req), {"Content-Type":"application/json"})
-
+		
 		
 		
 		
 def request2Bica(data, conceptID):
 	bica_conn = http.client.HTTPConnection(bica_host, bica_port)
-	bica_conn.connect()
-
+	
 	#1. RSA 먼저 검색
 	bica_request = {
 		"data" : data['_source']['doc_content'],
 		"conceptID" : conceptID
-	} 
+	}
+	bica_result = None
 	
-	bica_conn.request("POST", "/request.is?"+urllib.parse.urlencode(bica_request, 'utf-8'), "", { "Content-Type" : "application/json" })
+	try:
+		bica_conn.connect()
+		bica_conn.request("POST", "/request.is?"+urllib.parse.urlencode(bica_request, 'utf-8'), "", { "Content-Type" : "application/json" })
+		bica_result = json.loads(bica_conn.getresponse().read())
+	except:
+		retry = 0
+		ex = traceback.format_exc()
+		while retry < 5:
+			print("[request2Bica] Sleep for 30 seconds....", end="")
+			time.sleep(30)
+			try:
+				ex = traceback.format_exc()
+				print("[retry:%d] %s"%(retry+1, str(ex)))
+				
+				bica_conn.connect()
+				bica_conn.request("POST", "/request.is?"+urllib.parse.urlencode(bica_request, 'utf-8'), "", { "Content-Type" : "application/json" })
+				bica_result = json.loads(bica_conn.getresponse().read())
+				if bica_result is not None: break
+			except:
+				retry += 1
+				continue
+		
+		if retry >= 5:
+			print("[FAILED][request2Bica] ", data, conceptID)
 	
-	bica_result = json.loads(bica_conn.getresponse().read())
 	logger.debug('---------------------------------------------------------------')
+	logger.debug(json.dumps(bica_request))
 	logger.debug(bica_result)
 	logger.debug('---------------------------------------------------------------')
 	
@@ -310,173 +360,211 @@ def request2Bica(data, conceptID):
 '''
 	- dir				: 저장할 파일 디렉토리
 	- csvname			: csv파일명
-	- start_datetime	: 검색해서 가져올 crawl_doc 시작일자
+	- start_datetime	: 검색해서 가져올 crawl_doc 시작일자 (마지막 실행했던 데이터의 doc_datetime)
 	- toRevise			: 검증용 파일 여부
 '''
-def es2csv(dir, csvname, start_datetime, toRevise=False):
+def es2csv(dir, csvname, start_datetime, toRevise=False, end_datetime=None):
 	# get query from es search result and send it to BICA to get analyzed result.
-	es_search_request = json.dumps({
-		"size" : 10000,
+	es_search_request = {
 		"query" : {
 			"range" : {
 				"doc_datetime" : {
-					"gte" : start_datetime
+					"gt" : start_datetime
 				}
 			}
 		}
-	})
+	}
 	
+	if end_datetime is not None:
+		es_search_request['query']['range']['doc_datetime']['lt'] = end_datetime
+		
+	logger.debug("[es2csv] es_uri ::: " + "/"+INDEX_NAME+"/crawl_doc/_count")
+	logger.debug("[es2csv] es_search_request ::: " + json.dumps(es_search_request))
+	
+	# 검색 결과 갯수 가져오기
 	es_conn = http.client.HTTPConnection(es_host, es_port)
 	es_conn.connect()
-	es_conn.request("POST", "/"+INDEX_NAME+"/crawl_doc/_search", es_search_request, {
-		"Content-Type" : "application/json"
-	})
+	es_conn.request("POST", "/"+INDEX_NAME+"/crawl_doc/_count", json.dumps(es_search_request), {"Content-Type" : "application/json"})
 	
-	es_result = json.loads(es_conn.getresponse().read())
+	es_count = json.loads(es_conn.getresponse().read())
 	
-	if 'hits' in es_result and es_result['hits']['total']>0:
+	if 'count' in es_count and es_count['count']>0:
+		totalCount = es_count['count']
+		
 		# CSV 생성
 		if toRevise:
 			csvfile = codecs.open(os.path.join(dir, 'to_revise', csvname), 'w', 'utf-8')
-			csvfile.write("case_id;response_id;answer_id;language_id;comment;subtopic_code;sentence;category;sentiment;sentiment_comment;english_translation")
+			csvfile.write("case_id;response_id;answer_id;language_id;comment;subtopic_code;sentence;category;sentiment;sentiment_case;english_translation")
 			csvfile.write("\r\n")
 		else:
 			csvfile = codecs.open(os.path.join(dir, csvname), 'w', 'utf-8')
-			csvfile.write("case_id;response_id;answer_id;language_id;comment;subtopic_code;sentiment;sentiment_comment;english_translation")
+			csvfile.write("case_id;response_id;answer_id;language_id;comment;subtopic_code;sentiment;sentiment_case;english_translation")
 			csvfile.write("\r\n")
 			
-		print("<Start ({})>".format(str(es_result["hits"]["total"])))
+		logger.debug("<Start (%d)>"%totalCount)
+		print("<Start (%d)>"%totalCount)
 		
-		#############################################################################
-		#                                 원문 단위 loop
-		#############################################################################
-		for num, hit in enumerate(es_result["hits"]["hits"]):
-			docid = hit['_id']
-			comment = hit['_source']['doc_content']
-			case_id, response_id, answer_id, language_id = re.sub("^E", "", docid).split('_')
-
-			# 검색된 crawl_doc의 문서에 해당하는 emotions 검색
-			emotions_req = {
-				"query" : {
-					"has_parent" : {
-						"parent_type" : "crawl_doc",
-						"query" : {
-							"term" : {
-								"_id" : docid
+		scroll_id = None
+		for page in range(math.ceil(totalCount/PAGE_SIZE)):
+			print("[PAGE:%d]"%page)
+			
+			requestUri = ""
+			requestPerPage = None
+			
+			if scroll_id is not None:
+				requestUri = "/_search/scroll"
+				requestPerPage = { "scroll" : "1d", "scroll_id" : scroll_id }
+			else:
+				requestUri = "/"+INDEX_NAME+"/crawl_doc/_search?scroll=1d"
+				requestPerPage = es_search_request
+				requestPerPage['size'] = PAGE_SIZE
+				
+			logger.debug("[es2csv] requestUri ::: " + requestUri)
+			logger.debug("[es2csv] requestPerPage ::: " + json.dumps(requestPerPage))
+				
+			# 본격적으로 검색
+			es_conn2 = http.client.HTTPConnection(es_host, es_port)
+			es_conn2.connect()
+			es_conn2.request("POST", requestUri, json.dumps(requestPerPage), {"Content-Type" : "application/json"})
+			
+			scrolledResult = json.loads(es_conn2.getresponse().read())
+			scroll_id = scrolledResult['_scroll_id']
+			
+			#############################################################################
+			#                                 원문 단위 loop
+			#############################################################################
+			for num, hit in enumerate(scrolledResult["hits"]["hits"]):
+				docid = hit['_id']
+				comment = hit['_source']['doc_content']
+				case_id, response_id, answer_id, language_id = re.sub("^E", "", docid).split('_')
+	
+				# 검색된 crawl_doc의 문서에 해당하는 emotions 검색
+				emotions_req = {
+					"query" : {
+						"has_parent" : {
+							"parent_type" : "crawl_doc",
+							"query" : {
+								"term" : {
+									"_id" : docid
+								}
 							}
 						}
 					}
 				}
-			}
-			es_conn.request("GET", "/"+INDEX_NAME+"/emotions/_search", json.dumps(emotions_req), {
-				"Content-Type" : "application/json"
-			})
-			emotions_result = json.loads(es_conn.getresponse().read())
-			
-			#############################################################################
-			#                                 감정 분석 loop
-			#############################################################################
-			emotionsForThisDocument = {}
-			if 'total' in emotions_result['hits'] and emotions_result['hits']['total']>0:
-				# category의 label이 중복되지 않도록
-				# emotionsForThisDocument에 중복을 체크하며 담는다.
-				for emotion in emotions_result['hits']['hits']:
-					for category in emotion['_source']['categories']:
-						weight = None
-						label = None
-						
-						# "가중치3", "경쟁브랜드_가중치3", "경쟁브랜드", "메르세데스벤츠" 이런 경우는 저장 X
-						if(category['label'].find('가중치')>=0 or category['label'].find('_')<0 ):
-							continue # "label" :
-						else:
-							weight, label = category['label'].split("_", 1) # 3_PRO_QUALIT -> 3, PRO_QUALIT
+				es_conn.request("GET", "/"+INDEX_NAME+"/emotions/_search", json.dumps(emotions_req), {
+					"Content-Type" : "application/json"
+				})
+				emotions_result = json.loads(es_conn.getresponse().read())
+				
+				#############################################################################
+				#                                 감정 분석 loop
+				#############################################################################
+				emotionsForThisDocument = {}
+				if 'total' in emotions_result['hits'] and emotions_result['hits']['total']>0:
+					# category의 label이 중복되지 않도록
+					# emotionsForThisDocument에 중복을 체크하며 담는다.
+					for emotion in emotions_result['hits']['hits']:
+						for category in emotion['_source']['categories']:
+							weight = None
+							label = None
 							
-						# category_dict가 비어있지 않고,
-						# category_dict[label]이 존재하고,
-						# category_dict[label]의 값이 현재 weight보다 작거나 같으면 skip
-						if(label in emotionsForThisDocument and int(weight)>=int(emotionsForThisDocument[label]['weight'])):
-							continue 
-						else:
-							emotionsForThisDocument[label] = {
-								'id' : emotion['_id'],
-								'weight' : int(weight),
-								'entry' : category['entries'][0],
-								'sentence' : emotion['_source']['matched_text']['string']
-							}
-				
-				# 중복이 제거된 emotionsForThisDocument를 csv 파일에 쓴다.
-				for subtopicCode, em in emotionsForThisDocument.items():
-					csvfile.write(case_id)
-					csvfile.write(";")
-					csvfile.write(response_id)
-					csvfile.write(";")
-					csvfile.write(answer_id)
-					csvfile.write(";")
-					csvfile.write(language_id)
-					csvfile.write(";")
-					csvfile.write(comment) # comment
-					csvfile.write(";")
-					csvfile.write(subtopicCode) # subtopic_code, 2_LOC_OVERAL -> LOC_OVERAL
-					csvfile.write(";")
-					if toRevise:
-						csvfile.write(em['sentence']) # sentence
-						csvfile.write(";")
-						# (운전[L]+(/J_)?+즐거움[L]) -> 운전+(/J_)?+즐거움
-						csvfile.write(re.sub("\[[a-zA-Z]\]", "", re.sub("\)$", "", re.sub("^\(", "", em['entry'])))) # variable
-						csvfile.write(";")
-					# TODO : 추후 이 부분은 matched_text로 교체해서 정확성이 더 올라가는지 확인 후 변경. --------------------------
-					csvfile.write(str(get_sentiment(em['id'], em['sentence'])))
-					# ----------------------------------------------------------------------------------------
-					csvfile.write(";")
-					csvfile.write("0") # 2018.03.20 sentiment_comment는 없어짐.
-					csvfile.write(";")
-					csvfile.write("\r\n")
+							# "가중치3", "경쟁브랜드_가중치3", "경쟁브랜드", "메르세데스벤츠" 이런 경우는 저장 X
+							if(ETC_CATEGORY_LABEL.search(category['label']) is not None or category['label'].find('_')<0 ):
+								continue # "label" :
+							else:
+								weight, label = category['label'].split("_", 1) # 3_PRO_QUALIT -> 3, PRO_QUALIT
+								
+							# category_dict가 비어있지 않고,
+							# category_dict[label]이 존재하고,
+							# category_dict[label]의 값이 현재 weight보다 작거나 같으면 skip
+							if(label in emotionsForThisDocument and int(weight)>=int(emotionsForThisDocument[label]['weight'])):
+								continue 
+							else:
+								emotionsForThisDocument[label] = {
+									'id' : emotion['_id'],
+									'weight' : int(weight),
+									'entry' : category['entries'][0],
+									'sentence' : emotion['_source']['matched_text']['string']
+								}
 					
-			else: # No topic의 경우
-				#print("!!! No topic")
-									
-				csvfile.write(case_id)
-				csvfile.write(";")
-				csvfile.write(response_id)
-				csvfile.write(";")
-				csvfile.write(answer_id)
-				csvfile.write(";")
-				csvfile.write(language_id)
-				csvfile.write(";")
-				csvfile.write(comment) # comment
-				csvfile.write(";")
-				csvfile.write('GEN_NONRSA2.1') # subtopic_code
-				csvfile.write(";")
-				if toRevise:
-					csvfile.write("") # sentence
-					csvfile.write(";")
-					csvfile.write("") # category
-					csvfile.write(";")
-				csvfile.write(str(get_sentiment(answer_id, comment))) # 2018.03.20 전체 문장에 대해서 감정을 판단한다.
-				csvfile.write(";")
-				csvfile.write("0")
-				csvfile.write(";")
-				csvfile.write("\r\n")
-				
-			
-			if(num+1 % 1000 == 0):
-				print('[{}]'.format(str(num+1)), end="")
-				sys.stdout.flush()
-			if(num+1 % 100 == 0):
-				print('.', end="")
-				sys.stdout.flush()
-				
-			#time.sleep(3)
-			
-		print("")
-		print("<Finish>")
+				write2csv(csvfile, case_id, response_id, answer_id, language_id, comment, emotionsForThisDocument, toRevise)
+					
+				if(num+1 % 1000 == 0):
+					print('[{}]'.format(str(num+1)), end="")
+					sys.stdout.flush()
+				if(num+1 % 100 == 0):
+					print('.', end="")
+					sys.stdout.flush()
 		
 		csvfile.close()
-	else: # no data
-		print("<No data>")
 		
+	else:# no data
+		logger.debug("<No data>")
+		print("<No data>")
+	
+	logger.debug("<Finish>")
+	print("<Finish>")
 	
 	
+	
+	
+	
+def write2csv(csvfile, case_id, response_id, answer_id, language_id, comment, val, toRevise):
+	if bool(val):
+		# 중복이 제거된 val을 csv 파일에 쓴다.
+		for subtopicCode, em in val.items():
+			csvfile.write(case_id)
+			csvfile.write(";")
+			csvfile.write(response_id)
+			csvfile.write(";")
+			csvfile.write(answer_id)
+			csvfile.write(";")
+			csvfile.write(language_id)
+			csvfile.write(";")
+			csvfile.write(re.sub("[\"\'\+=\-/]", "", comment)) # comment
+			csvfile.write(";")
+			csvfile.write(subtopicCode) # subtopic_code, 2_LOC_OVERAL -> LOC_OVERAL
+			csvfile.write(";")
+			if toRevise:
+				csvfile.write(re.sub("[\"\'\+=\-/]", "", em['sentence'])) # sentence
+				csvfile.write(";")
+				# (운전[L]+(/J_)?+즐거움[L]) -> 운전+(/J_)?+즐거움
+				csvfile.write(re.sub("\[[a-zA-Z]\]", "", re.sub("\)$", "", re.sub("^\(", "", em['entry'])))) # variable
+				csvfile.write(";")
+			# TODO : 추후 이 부분은 matched_text로 교체해서 정확성이 더 올라가는지 확인 후 변경. --------------------------
+			csvfile.write(str(get_sentiment(em['id'], em['sentence'])))
+			# ----------------------------------------------------------------------------------------
+			csvfile.write(";")
+			csvfile.write(str(get_sentiment(answer_id, comment)))
+			csvfile.write(";")
+			csvfile.write("\r\n")
+	else: # subtopic_code로 분류할만한 유효한 카테고리가 없거나 애초에 no topic인 경우
+		#print("!!! No topic")
+							
+		csvfile.write(case_id)
+		csvfile.write(";")
+		csvfile.write(response_id)
+		csvfile.write(";")
+		csvfile.write(answer_id)
+		csvfile.write(";")
+		csvfile.write(language_id)
+		csvfile.write(";")
+		csvfile.write(re.sub("[\"\'\+=\-/]", "", comment)) # comment
+		csvfile.write(";")
+		csvfile.write('GEN_NONRSA2.1') # subtopic_code
+		csvfile.write(";")
+		if toRevise:
+			csvfile.write("") # sentence
+			csvfile.write(";")
+			csvfile.write("") # category
+			csvfile.write(";")
+		csvfile.write(str(get_sentiment(answer_id, comment))) # 2018.03.20 전체 문장에 대해서 감정을 판단한다.
+		csvfile.write(";")
+		csvfile.write(str(get_sentiment(answer_id, comment))) # 2018.04.03 sentiment, sentiment_comment 동일
+		csvfile.write(";")
+		csvfile.write("\r\n")
+		
+		
 		
 		
 def get_sentiment(emotionId, text):
@@ -486,9 +574,30 @@ def get_sentiment(emotionId, text):
 	req = urllib.parse.urlencode({'sentence' : text}, 'utf-8')
 	
 	# 긍부정 분석기에 연결
-	tousflux_conn = http.client.HTTPConnection(tousflux_host, tousflux_port)
-	tousflux_conn.connect()
-	tousflux_conn.request("GET", "/?authinit=WISENUT01_TC0002_{0}&{1}".format(emotionId, req))
+	try:
+		tousflux_conn = http.client.HTTPConnection(tousflux_host, tousflux_port)
+		tousflux_conn.connect()
+		tousflux_conn.request("GET", "/?authinit={0}&{1}".format(emotionId, req))
+	except:
+		retry = 0
+		ex = traceback.format_exc()
+		while retry < 5:
+			print("[get_sentiment] Sleep for 30 seconds....", end="")
+			time.sleep(30)
+			try:
+				ex = traceback.format_exc()
+				print("[retry:%d] %s"%(retry+1, str(ex)))
+				
+				tousflux_conn = http.client.HTTPConnection(tousflux_host, tousflux_port)
+				tousflux_conn.connect()
+				tousflux_conn.request("GET", "/?authinit={0}&{1}".format(emotionId, req))
+				break
+			except:
+				retry += 1
+				continue
+		
+		if retry >= 5:
+			print("[FAILED][get_sentiment] ", emotionId, text)
 	
 	# 결과 처리
 	result = str(tousflux_conn.getresponse().read())
@@ -543,18 +652,32 @@ def get_current_time():
 
 
 if __name__ == '__main__':
-	#csv2es(r"E:\data\bmw_test\example_rsa.csv")
-	es2csv(r"E:\data\bmw_test", "example_rsa_result_2.CSV", "20180321000000", False)
+	
+	csv2es(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding\GeneralFeedbacks.csv")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Apr_2017.CSV", "20170401000000", False, "20170501000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "May_2017.CSV", "20170501000000", False, "20170601000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Jun_2017.CSV", "20170601000000", False, "20170701000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Jul_2017.CSV", "20170701000000", False, "20170801000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Aug_2017.CSV", "20170801000000", False, "20170901000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Sep_2017.CSV", "20170901000000", False, "20171001000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Oct_2017.CSV", "20171001000000", False, "20171101000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Nov_2017.CSV", "20171101000000", False, "20171201000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Dec_2017.CSV", "20171201000000", False, "20180101000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Jan_2018.CSV", "20180101000000", False, "20180201000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Feb_2018.CSV", "20180201000000", False, "20180301000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Mar_2018.CSV", "20180301000000", False, "20180401000000")
+	#es2csv(r"E:\documents\# 회사 업무\# D-Map\05. 프로젝트\2017.03 BMW 텍스트 감성 분석\06. Coding 2.1 개편\과거 데이터 RE-Coding", "Apr_2018.CSV", "20180401000000", False, "20180501000000")
+	
 	'''
 	insert_emotions({
         "_index": "bmw_v2.1",
         "_type": "crawl_doc",
-        "_id": "E417869_6_6_10",
+        "_id": "E129801_3559056_3428535_48",
         "_score": 27899.535,
         "_source": {
-          "doc_id": "E417869_6_6_10",
-          "doc_datetime": "20180321140730",
-          "doc_content": "긴급출동 기사분이 믿음을 주시네요. 무엇보다 고객의 안전을 제일 먼저 생각해주시는것 같아 고마웠습니다.",
+          "doc_id": "E129801_3559056_3428535_48",
+          "doc_datetime": "20170404093158",
+          "doc_content": "네비게이션이 불편하다고 하심",
           "user_id": "bmw"
         }
     })
