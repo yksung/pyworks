@@ -42,6 +42,10 @@ TYPE_DOC="doc"
 es_ip = "211.39.140.96"
 es_port = 9201
 
+URL_PATTERN=re.compile("(http[s]*:\/\/[www.]*|\.co[m]*|\.net|\.kr|\.or[g]*|\.htm[l]*|\.php|\.edu|\.jsp|\.aspx|\.asp)")
+ETC_PATTERN=re.compile("복사|번역|기타|기능|URL|본문|보기|RT|사주|naver")
+
+
 class EsError(Exception):
     pass
 
@@ -79,11 +83,13 @@ async def related_word_extractor(parent_docid, doc_datetime, term, debug=False):
                 "fields": {
                   "_all" : {},
                   "doc_title": {
+                    "type": "plain",
                     "fragment_size": 30,
                     "number_of_fragments": 1,
                     "fragmenter": "simple"
                   },
                   "doc_content": {
+                    "type": "plain",
                     "fragment_size": 30,
                     "number_of_fragments": 3,
                     "fragmenter": "simple"
@@ -106,6 +112,9 @@ async def related_word_extractor(parent_docid, doc_datetime, term, debug=False):
                 content_fragments = [ fragment for fragment in a['highlight']['doc_content'] ]
 
         for f in (title_fragments+content_fragments):
+            # url이 포함된 항목들은 문장에서 제거
+            f = URL_PATTERN.sub("", f)
+            f = ETC_PATTERN.sub("", f)
             related += await get_close_word(f, debug)
     
     es.close()
@@ -117,18 +126,14 @@ async def related_word_extractor(parent_docid, doc_datetime, term, debug=False):
 
 async def get_close_word(text, debug=False):
     if debug : print("### text : {}".format(text))
-    ret = []
-    
-    hl_p = re.compile("<em>[가-힣ㄱ-ㅎa-zA-Z\s]*</em>[가-힣ㄱ-ㅎa-zA-Z]*")
-    not_word_p = re.compile("[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]")
-    
-    for token in filter(lambda x:x, hl_p.split(text)): # 검색된 단어들(em으로 감싸인 단어)을 제외한 나머지 단어 묶음을 추출
-        if debug : print("* "+token)
-        for x in filter( lambda x:x, not_word_p.split(token.strip()) ): # 나머지 단어들을 기호나 스페이스로 분리
-            word = await analyze(x.strip(), debug)
-            if word.strip():
-                ret.append(word)
 
+    # <em> 태그로 감싸진 단어를 기준으로 문장을 나눔    
+    HL_PATTERN = re.compile("<em>[가-힣ㄱ-ㅎa-zA-Z\s]*</em>[가-힣ㄱ-ㅎa-zA-Z]*")
+    
+    ret = []
+    for token in filter(lambda x:x, HL_PATTERN.split(text)): # 검색된 단어들(em으로 감싸인 단어)을 제외한 나머지 단어 묶음을 추출
+        ret = await analyze(token.strip(), debug)
+        
     return ret
 
 
@@ -149,7 +154,9 @@ async def analyze(text, debug=False):
         raise NoMecabAvailable 
     
     p = run([mecabBin, '-d', mecabDic], stdout=PIPE, input=text, encoding="UTF-8")
-    result = p.stdout.split("\n")    
+    result = p.stdout.split("\n")
+    
+    if debug : print(p.stdout)
     
     ret=[]
     for x in result:
@@ -158,16 +165,18 @@ async def analyze(text, debug=False):
             tag = x.split("\t")[1]
             
             #if tag.split(",")[0] in ["MM", "NNG", "NNP", "XPN", "XR", "XSN", "SN", "NNBC",  "SL", ]:
-            if tag.split(",")[0] in ["MM", "NNG", "NNP", "XPN", "XR", "SL", ]:
+            #if tag.split(",")[0] in ["MM", "NNG", "NNP", "XPN", "XR", "SL", ]:
+            if tag.split(",")[0] in ["NNG", "NNP"]:
                 ret.append(word)
             #elif tag.split(",")[0] in ["VV", "VA"]: #, "XSV"
             #    ret.append(word+"다")
         else:
             break
 
-    if debug : print("".join(ret))
+    #if debug : print("".join(ret))
     
-    return "".join(ret)
+    #return "".join(ret)
+    return ret
 
 
 
