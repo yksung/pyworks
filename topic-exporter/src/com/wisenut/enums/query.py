@@ -117,8 +117,8 @@ class Query():
         if mode == 'always':
             field = 'upd_datetime'
         elif  mode == 'retroactive':
-            #field = 'doc_datetime'
-            field = 'upd_datetime'
+            field = 'doc_datetime'
+            #field = 'upd_datetime'
             
         return {
             "range": {
